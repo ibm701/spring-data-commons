@@ -40,8 +40,9 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  * @author Oliver Gierke
  * @author Thomas Darimont
  * @author Nick Williams
+ * @author Mark Paluch
  */
-public class SortHandlerMethodArgumentResolver implements HandlerMethodArgumentResolver {
+public class SortHandlerMethodArgumentResolver implements HandlerMethodArgumentResolver, SortArgumentResolver {
 
 	private static final String DEFAULT_PARAMETER = "sort";
 	private static final String DEFAULT_PROPERTY_DELIMITER = ",";
@@ -105,6 +106,15 @@ public class SortHandlerMethodArgumentResolver implements HandlerMethodArgumentR
 	@Override
 	public Sort resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
 			NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+		return resolveArgument(parameter, webRequest);
+	}
+
+	/* 
+	 * (non-Javadoc)
+	 * @see org.springframework.data.web.SortArgumentResolver#resolveArgument(org.springframework.core.MethodParameter, org.springframework.web.context.request.NativeWebRequest)
+	 */
+	@Override
+	public Sort resolveArgument(MethodParameter parameter, NativeWebRequest webRequest) {
 
 		String[] directionParameter = webRequest.getParameterValues(getSortParameter(parameter));
 
@@ -260,7 +270,7 @@ public class SortHandlerMethodArgumentResolver implements HandlerMethodArgumentR
 			builder.add(order.getProperty());
 		}
 
-		return builder == null ? Collections.<String> emptyList() : builder.dumpExpressionIfPresentInto(expressions);
+		return builder == null ? Collections.<String>emptyList() : builder.dumpExpressionIfPresentInto(expressions);
 	}
 
 	/**
@@ -290,7 +300,7 @@ public class SortHandlerMethodArgumentResolver implements HandlerMethodArgumentR
 			builder.add(order.getProperty());
 		}
 
-		return builder == null ? Collections.<String> emptyList() : builder.dumpExpressionIfPresentInto(expressions);
+		return builder == null ? Collections.<String>emptyList() : builder.dumpExpressionIfPresentInto(expressions);
 	}
 
 	/**

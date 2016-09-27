@@ -39,9 +39,11 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  * @since 1.6
  * @author Oliver Gierke
  * @author Nick Williams
+ * @author Mark Paluch
  */
-public class PageableHandlerMethodArgumentResolver implements HandlerMethodArgumentResolver {
+public class PageableHandlerMethodArgumentResolver implements HandlerMethodArgumentResolver, PageableArgumentResolver {
 
+	private static final SortHandlerMethodArgumentResolver DEFAULT_SORT_RESOLVER = new SortHandlerMethodArgumentResolver();
 	private static final String INVALID_DEFAULT_PAGE_SIZE = "Invalid default page size configured for method %s! Must not be less than one!";
 
 	private static final String DEFAULT_PAGE_PARAMETER = "page";
@@ -52,7 +54,7 @@ public class PageableHandlerMethodArgumentResolver implements HandlerMethodArgum
 	static final Pageable DEFAULT_PAGE_REQUEST = new PageRequest(0, 20);
 
 	private Pageable fallbackPageable = DEFAULT_PAGE_REQUEST;
-	private SortHandlerMethodArgumentResolver sortResolver;
+	private SortArgumentResolver sortResolver;
 	private String pageParameterName = DEFAULT_PAGE_PARAMETER;
 	private String sizeParameterName = DEFAULT_SIZE_PARAMETER;
 	private String prefix = DEFAULT_PREFIX;
@@ -64,7 +66,7 @@ public class PageableHandlerMethodArgumentResolver implements HandlerMethodArgum
 	 * Constructs an instance of this resolved with a default {@link SortHandlerMethodArgumentResolver}.
 	 */
 	public PageableHandlerMethodArgumentResolver() {
-		this(null);
+		this((SortArgumentResolver) null);
 	}
 
 	/**
@@ -73,7 +75,17 @@ public class PageableHandlerMethodArgumentResolver implements HandlerMethodArgum
 	 * @param sortResolver The sort resolver to use
 	 */
 	public PageableHandlerMethodArgumentResolver(SortHandlerMethodArgumentResolver sortResolver) {
-		this.sortResolver = sortResolver == null ? new SortHandlerMethodArgumentResolver() : sortResolver;
+		this((SortArgumentResolver) sortResolver);
+	}
+
+	/**
+	 * Constructs an instance of this resolver with the specified {@link SortArgumentResolver}.
+	 *
+	 * @param sortResolver The sort resolver to use
+	 * @since 1.13
+	 */
+	public PageableHandlerMethodArgumentResolver(SortArgumentResolver sortResolver) {
+		this.sortResolver = sortResolver == null ? DEFAULT_SORT_RESOLVER : sortResolver;
 	}
 
 	/**
@@ -221,6 +233,15 @@ public class PageableHandlerMethodArgumentResolver implements HandlerMethodArgum
 	@Override
 	public Pageable resolveArgument(MethodParameter methodParameter, ModelAndViewContainer mavContainer,
 			NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+		return resolveArgument(methodParameter, webRequest);
+	}
+
+	/* 
+	 * (non-Javadoc)
+	 * @see org.springframework.data.web.PageableArgumentResolver#resolveArgument(org.springframework.core.MethodParameter, org.springframework.web.context.request.NativeWebRequest)
+	 */
+	@Override
+	public Pageable resolveArgument(MethodParameter methodParameter, NativeWebRequest webRequest) {
 
 		assertPageableUniqueness(methodParameter);
 
@@ -245,7 +266,7 @@ public class PageableHandlerMethodArgumentResolver implements HandlerMethodArgum
 		// Limit upper bound
 		pageSize = pageSize > maxPageSize ? maxPageSize : pageSize;
 
-		Sort sort = sortResolver.resolveArgument(methodParameter, mavContainer, webRequest, binderFactory);
+		Sort sort = sortResolver.resolveArgument(methodParameter, webRequest);
 
 		// Default if necessary and default configured
 		sort = sort == null && defaultOrFallback != null ? defaultOrFallback.getSort() : sort;
